@@ -168,20 +168,23 @@ printf "\n \n \n"
 find /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Attack-Data -ls | while read line
    do
    fileName=$(echo $line | awk '{print $11}')
-   cat $fileName 2>/dev/null | jq -r '.src_ip' 2>/dev/null
-   done > /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/src-ip-address
-   cat /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/src-ip-address | sort | uniq > /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/sorted-ip-addresses
+   cat $fileName 2>/dev/null | jq -r '.src_ip, .dst_ip' 2>/dev/null | xargs -n 2
+   done > /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/src-dst-ip-address
 
-    ipAddresses=$(cat /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/sorted-ip-addresses)
+   sort < /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/src-dst-ip-address | grep -v "null" | uniq > /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/sorted-ip-addresses
+   rm /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/src-dst-ip-address
 
-    for i in $ipAddresses;
+   srcIP=$(cat /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/sorted-ip-addresses | awk '{ print $1}')
+
+    for i in $srcIP;
       do
+       target=$(cat /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/sorted-ip-addresses | awk '{ print $2}')
        domain=$(dig +short -x $i)
        org=$(whois $i | grep -i OrgName | awk 'NR==1{print $2}')
        loc=$(geoiplookup $i | awk '{print $5, $6, $7, $8, $9}')
        if [ -n "$domain" ];
         then
-         printf "\e[42m\e[30m%sIP Address: $i | %sLocation: $loc | %sOrganization: $org  | %sDomain: $domain \e[0m \n" >> /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Active-IPs-wDomain
+         printf "\e[42m\e[30m%sIP Address: $i | %sLocation: $loc | %sTarget: $target  | %sOrg: $org \e[0m \n" | uniq >> /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Active-IPs-wDomain
         else
          printf "\e[45m%sIP Address: $i | %sLocation: $loc \e[0m  \n" >> /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Active-IPs-woDomain
        fi
@@ -196,13 +199,18 @@ find /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Atta
        cat /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Inactive-IPs  >> /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Sorted-Active-IPs
        rm /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-details
        mv /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Sorted-Active-IPs /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-details
+       cat /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-details | column -ts '|'  > /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-details2
+       rm /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-details
+       mv /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-details2 /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-details
 
-mkdir /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Attacker-IP-Information
+       mkdir /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-Related-Data
+       mv Sorted-Active-IPs Inactive-IPs Active-IPs-woDomain Active-IPs-wDomain /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-Related-Data
+
+  mkdir /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Attacker-IP-Information
 
   GermanyIP=$(sort < /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-details | grep -c "Germany")
   echo "Found $GermanyIP attacker IPs from Germany"
   sort < /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-details | grep "Germany" > /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Attacker-IP-Information/German-Attacker-Info
-#  column /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts/Attacker-IP-Information/German-Attacker-Info -t -n > /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts/Attacker-IP-Information/German-Attacker-Info
 
   FranceIP=$(sort < /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-details | grep -c "France")
   echo "Found $FranceIP attacker IPs from France"
