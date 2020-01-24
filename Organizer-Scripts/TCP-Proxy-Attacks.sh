@@ -1,4 +1,5 @@
 #!/bin/bash
+    command -v geoiplookup >/dev/null 2>&1 || { echo >&2 "I require geoiplookup but it's not installed.  Aborting."; exit 1; }
 
     mkdir -p /root/MOS-tpot/cowrie-logs/ 2> /dev/null
     cp /data/cowrie/log/cowrie.json.2020-01-23 /root/MOS-tpot/cowrie-logs/
@@ -8,9 +9,41 @@
 #    chmod +x /root/MOS-tpot/cowrie-logs/cowrie.json
 
     str=message
+
     cat /root/MOS-tpot/cowrie-logs/cowrie.json | grep "discarded direct-tcp forward request" | grep -E -o '(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)' > /root/MOS-tpot/cowrie-logs/ip-addresses
     cat /root/MOS-tpot/cowrie-logs/ip-addresses | sort | uniq > /root/MOS-tpot/cowrie-logs/sorted-ip-addresses
     rm /root/MOS-tpot/cowrie-logs/ip-addresses
+
+    ipAddresses=$(cat /root/MOS-tpot/cowrie-logs/sorted-ip-addresses)
+
+#    for i in $ipAddresses;
+#     do
+#       printf "$i = %s\\n" $(dig +short -x "$i")
+#     done > /root/MOS-tpot/cowrie-logs/identified-domains
+#    iDomains=$(cat /root/MOS-tpot/cowrie-logs/identified-domains)
+
+    for i in $ipAddresses;
+      do
+#       divider="==================================================================================================================================="
+#       divider=$divider$divider
+#       header="\n %-10s %8s %10s %11s\n"
+#       width=435s
+#       printf "IP ADDRESS \t LOCATION \t ORGANIZATION \t DOMAIN NAME"
+#       printf "%$width.${width}s\n" "$divider"
+       domain=$(dig +short -x $i)
+       org=$(whois $i | grep -i OrgName | awk 'NR==1{print $2}')
+       loc=$(geoiplookup $i | awk '{print $5, $6, $7, $8, $9}')
+       if [ -n "$domain" ];
+        then
+         printf "%sIP %sAddress: $i \t \t %s Location: $loc \t%s Organization: $org \t %s Domain: $domain \n \n \n"
+        else
+         printf "\e[45m %s IP Address: $i %s is a Possible Attacker. No domain was found during reverse DNS lookup. \e[0m \n \n \n"
+       fi
+       if  [[ $domain == *"connection timed out; no servers could be reached"* ]];
+        then
+         printf "\e[41m %s IP Address: $i %s IP Address Not Active \e[0m \n \n \n"
+       fi
+      done > /root/MOS-tpot/cowrie-logs/IP-details
 
     cat /root/MOS-tpot/cowrie-logs/cowrie.json | grep "discarded direct-tcp forward request" | grep "ttvnw.net" > /root/MOS-tpot/cowrie-logs/twitch-attacks
     cat /root/MOS-tpot/cowrie-logs/cowrie.json | grep "discarded direct-tcp forward request" | grep "twitch.tv" >> /root/MOS-tpot/cowrie-logs/twitch-attacks
@@ -157,4 +190,4 @@
       echo "No other attacks found!"
     fi
 
-
+   mv /root/MOS-tpot/cowrie-logs /root/MOS-tpot/Malware-Samples/SSH-TCP-Proxy-Attack-Attempts
