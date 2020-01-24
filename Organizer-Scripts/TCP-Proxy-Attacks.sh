@@ -1,10 +1,16 @@
 #!/bin/bash
 
     mkdir -p /root/MOS-tpot/cowrie-logs/ 2> /dev/null
-    cp /data/cowrie/log/cowrie.json /root/MOS-tpot/cowrie-logs/
-    chmod +x /root/MOS-tpot/cowrie-logs/cowrie.json
+    cp /data/cowrie/log/cowrie.json.2020-01-23 /root/MOS-tpot/cowrie-logs/
+
+#    gzip -d /root/MOS-tpot/cowrie-logs/cowrie.json.1.gz
+    mv /root/MOS-tpot/cowrie-logs/cowrie.json.2020-01-23 /root/MOS-tpot//cowrie-logs/cowrie.json
+#    chmod +x /root/MOS-tpot/cowrie-logs/cowrie.json
 
     str=message
+    cat /root/MOS-tpot/cowrie-logs/cowrie.json | grep "discarded direct-tcp forward request" | grep -E -o '(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)' > /root/MOS-tpot/cowrie-logs/ip-addresses
+    cat /root/MOS-tpot/cowrie-logs/ip-addresses | sort | uniq > /root/MOS-tpot/cowrie-logs/sorted-ip-addresses
+    rm /root/MOS-tpot/cowrie-logs/ip-addresses
 
     cat /root/MOS-tpot/cowrie-logs/cowrie.json | grep "discarded direct-tcp forward request" | grep "ttvnw.net" > /root/MOS-tpot/cowrie-logs/twitch-attacks
     cat /root/MOS-tpot/cowrie-logs/cowrie.json | grep "discarded direct-tcp forward request" | grep "twitch.tv" >> /root/MOS-tpot/cowrie-logs/twitch-attacks
@@ -15,12 +21,36 @@
       echo "No twitch attacks found!"
     fi
 
+    cat /root/MOS-tpot/cowrie-logs/cowrie.json | grep "discarded direct-tcp forward request" | grep "ubi.com" > /root/MOS-tpot/cowrie-logs/ubi-attacks
+    if [[ $(< /root/MOS-tpot/cowrie-logs/ubi-attacks) == *"$str"* ]]
+     then
+      echo "Ubi.com attacks found!"
+     else
+      echo "No Ubi.com attacks found!"
+    fi
+
     cat /root/MOS-tpot/cowrie-logs/cowrie.json | grep "discarded direct-tcp forward request" | grep "instagram.com" > /root/MOS-tpot/cowrie-logs/instagram-attacks
     if [[ $(< /root/MOS-tpot/cowrie-logs/instagram-attacks) == *"$str"* ]]
      then
       echo "Instagram attacks found!"
      else
       echo "No Instagram attacks found!"
+    fi
+
+    cat /root/MOS-tpot/cowrie-logs/cowrie.json | grep "discarded direct-tcp forward request" | grep "trycaviar.com" > /root/MOS-tpot/cowrie-logs/trycaviar-attacks
+     if [[ $(< /root/MOS-tpot/cowrie-logs/trycaviar-attacks) == *"$str"* ]]
+     then
+      echo "Trycaviar.com attacks found!"
+     else
+      echo "No trycaviar.com attacks found!"
+    fi
+
+    cat /root/MOS-tpot/cowrie-logs/cowrie.json | grep "discarded direct-tcp forward request" | grep "trycaviar.com" > /root/MOS-tpot/cowrie-logs/phoneclaim-attacks
+    if [[ $(< /root/MOS-tpot/cowrie-logs/phoneclaim-attacks) == *"$str"* ]]
+     then
+      echo "Phoneclaim.com attacks found!"
+     else
+      echo "No Phoneclaim.com attacks found!"
     fi
 
     cat /root/MOS-tpot/cowrie-logs/cowrie.json | grep "discarded direct-tcp forward request" | grep "levelup.com" > /root/MOS-tpot/cowrie-logs/levelup-attacks
@@ -119,7 +149,7 @@
       echo "No HTTP requests found!"
     fi
 
-    cat /root/MOS-tpot/cowrie-logs/cowrie.json | grep "discarded direct-tcp forward request" | grep -v -E "HTTP|levelup.com|instagram.com|ttvnw.net|youtube.com|pof.com|ipify.org|googleapis.com|twitch.tv|google.com|att.net|amazon.com|bitesquad.com|steampowered.com|gstatic.com" > /root/MOS-tpot/cowrie-logs/other-attacks
+    cat /root/MOS-tpot/cowrie-logs/cowrie.json | grep "discarded direct-tcp forward request" | grep -v -E "phoneclaim.com|trycaviar.com|ubi.com|HTTP|levelup.com|instagram.com|ttvnw.net|youtube.com|pof.com|ipify.org|googleapis.com|twitch.tv|google.com|att.net|amazon.com|bitesquad.com|steampowered.com|gstatic.com" > /root/MOS-tpot/cowrie-logs/other-attacks
     if [[ $(< /root/MOS-tpot/cowrie-logs/other-attacks) == *"$str"* ]]
      then
       echo "Other attacks found!"
