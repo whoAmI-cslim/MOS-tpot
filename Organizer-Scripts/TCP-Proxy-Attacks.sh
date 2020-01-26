@@ -1,10 +1,12 @@
 #!/bin/bash
     command -v geoiplookup >/dev/null 2>&1 || { echo >&2 "I require geoiplookup but it's not installed.  Aborting."; exit 1; }
 
-    mkdir -p /root/MOS-tpot/cowrie-logs/ 2> /dev/null
-    cp /data/cowrie/log/cowrie.json.2020-01-23 /root/MOS-tpot/cowrie-logs/
+    srcfileDate=$(date +%Y-%m-%d -d 'yesterday')
 
-    mv /root/MOS-tpot/cowrie-logs/cowrie.json.2020-01-23 /root/MOS-tpot/cowrie-logs/cowrie.json
+    mkdir -p /root/MOS-tpot/cowrie-logs/ 2> /dev/null
+    cp /data/cowrie/log/cowrie.json.$srcfileDate /root/MOS-tpot/cowrie-logs/
+
+    mv /root/MOS-tpot/cowrie-logs/cowrie.json.$srcfileDate /root/MOS-tpot/cowrie-logs/cowrie.json
 
     str=message
 
@@ -153,7 +155,7 @@
       echo "No other attacks found!"
     fi
 
-   fileDate=$(date +%m-%d-%Y)
+   fileDate=$(date +%m-%d-%Y -d 'yesterday')
    mv /root/MOS-tpot/cowrie-logs /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"
 
    mkdir /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Attack-Data
@@ -166,45 +168,41 @@ echo "This part may take a bit. There are a lot of IP related commands being exe
 printf "\n \n \n"
 
 find /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Attack-Data -ls | while read line
-   do
-   fileName=$(echo $line | awk '{print $11}')
-   cat $fileName 2>/dev/null | jq -r '.src_ip, .dst_ip' 2>/dev/null | xargs -n 2
-   done > /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/src-dst-ip-address
+  do
+  fileName=$(echo $line | awk '{print $11}')
+  cat $fileName 2>/dev/null | jq -r '.src_ip, .dst_ip' 2>/dev/null | xargs -n 2
+  done > /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/src-dst-ip-address
 
-   sort < /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/src-dst-ip-address | grep -v "null" | uniq > /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/sorted-ip-addresses
-   rm /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/src-dst-ip-address
+  cat /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/src-dst-ip-address | grep -v "null" | sort | uniq > /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/sorted-ip-addresses
+  rm /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/src-dst-ip-address
 
-   srcIP=$(cat /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/sorted-ip-addresses | awk '{ print $1}')
+  input=$(cat /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/sorted-ip-addresses)
 
-    for i in $srcIP;
-      do
-       target=$(cat /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/sorted-ip-addresses | awk '{ print $2}')
-       domain=$(dig +short -x $i)
-       org=$(whois $i | grep -i OrgName | awk 'NR==1{print $2}')
-       loc=$(geoiplookup $i | awk '{print $5, $6, $7, $8, $9}')
-       if [ -n "$domain" ];
-        then
-         printf "\e[42m\e[30m%sIP Address: $i | %sLocation: $loc | %sTarget: $target  | %sOrg: $org \e[0m \n" | uniq >> /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Active-IPs-wDomain
-        else
-         printf "\e[45m%sIP Address: $i | %sLocation: $loc \e[0m  \n" >> /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Active-IPs-woDomain
-       fi
-       if  [[ $domain == *"connection timed out; no servers could be reached"* ]];
-        then
-         printf "\e[41m%sIP Address: $i %s IP Address Not Active \e[0m \n" >> /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Inactive-IPs
-       fi
-      done > /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-details
+while read src_ip dst_ip;
+ do
+   domain=$(dig +short -x "$src_ip")
+   org=$(whois "$dst_ip" | grep -i OrgName | awk 'NR==1{print $2}')
+   loc=$(geoiplookup "$src_ip" | awk '{print $5, $6, $7, $8, $9}')
+   if [ -n "$domain" ];
+    then
+     printf "\e[42m\e[30m%sIP Address: $src_ip | %sLocation: $loc | %sTarget: $dst_ip  | %sOrg: $org \e[0m \n" >> /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Active-IPs-wDomain
+    else
+     printf "\e[45m%sIP Address: $src_ip | %sLocation: $loc | %sTarget: $dst_ip \e[0m  \n" >> /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Active-IPs-woDomain
+   fi
+   if  [[ $domain == *"connection timed out; no servers could be reached"* ]];
+    then
+     printf "\e[41m%sIP Address: $src_ip | %sIP Address Not Active \e[0m \n" >> /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Inactive-IPs
+   fi
+ done <<< "$input"
 
-       cat /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Active-IPs-wDomain | grep -v 'Domain: ;; connection timed out; no servers could be reached' > /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Sorted-Active-IPs
-       cat /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Active-IPs-woDomain  >> /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Sorted-Active-IPs
-       cat /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Inactive-IPs  >> /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Sorted-Active-IPs
-       rm /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-details
-       mv /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Sorted-Active-IPs /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-details
-       cat /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-details | column -ts '|'  > /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-details2
-       rm /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-details
-       mv /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-details2 /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-details
+      cat /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Active-IPs-wDomain | grep -v "Domain: ;; connection timed out; no servers could be reached" | column -ts$'|' | grep -v "172.23.0.2" > /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Sorted-Active-IPs
+      cat /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Active-IPs-woDomain | column -ts$'|' | grep -v "172.23.0.2"  >> /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Sorted-Active-IPs
+      cat /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Inactive-IPs | column -ts$'|' | grep -v "172.23.0.2"  >> /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Sorted-Active-IPs
+      mv /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Sorted-Active-IPs /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-details
 
-       mkdir /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-Related-Data
-       mv Sorted-Active-IPs Inactive-IPs Active-IPs-woDomain Active-IPs-wDomain /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-Related-Data
+      mkdir /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-Related-Data
+      mv Sorted-Active-IPs Inactive-IPs Active-IPs-woDomain Active-IPs-wDomain /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-Related-Data
+
 
   mkdir /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Attacker-IP-Information
 
@@ -315,3 +313,5 @@ find /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Atta
   EgyptIP=$(sort < /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-details | grep -c "Egypt")
   echo "Found $EgyptIP attacker IPs from Egypt"
   sort < /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/IP-details | grep "Egypt" > /root/MOS-tpot/Malware-Files/SSH-TCP-Proxy-Attack-Attempts_"$fileDate"/Attacker-IP-Information/Egyptian-Attacker-Info
+
+
